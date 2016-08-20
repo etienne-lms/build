@@ -139,6 +139,14 @@ optee-smaf-clean: optee-smaf-clean-common
 ################################################################################
 # Root FS
 ################################################################################
+
+ifeq ($(COMPILE_NS_USER),32)
+ROOTFS_LIBPATH	?= "/lib/arm-linux-gnueabihf"
+endif
+ifeq ($(COMPILE_NS_USER),64)
+ROOTFS_LIBPATH	?= "/lib/aarch64-linux-gnu"
+endif
+
 .PHONY: filelist-tee
 filelist-tee: xtest helloworld
 	@echo "# xtest / optee_test" > $(GEN_ROOTFS_FILELIST)
