@@ -130,6 +130,13 @@ helloworld: helloworld-common
 helloworld-clean: helloworld-clean-common
 
 ################################################################################
+# optee_smaf: SMAF support over optee
+################################################################################
+optee-smaf: optee-smaf-common
+
+optee-smaf-clean: optee-smaf-clean-common
+
+################################################################################
 # Root FS
 ################################################################################
 .PHONY: filelist-tee

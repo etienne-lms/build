@@ -15,6 +15,8 @@ OPTEE_CLIENT_EXPORT		?= $(OPTEE_CLIENT_PATH)/out/export
 OPTEE_TEST_PATH			?= $(ROOT)/optee_test
 OPTEE_TEST_OUT_PATH 		?= $(ROOT)/optee_test/out
 HELLOWORLD_PATH			?= $(ROOT)/hello_world
+OPTEE_SMAF_PATH 		?= $(ROOT)/optee_smaf
+LIB_SMAF_PATH                   ?= $(ROOT)/libsmaf
 
 CFG_TEE_CORE_LOG_LEVEL		?= 3
 
@@ -248,3 +250,31 @@ HELLOWORLD_CLEAN_COMMON_FLAGS ?= TA_DEV_KIT_DIR=$(OPTEE_OS_TA_DEV_KIT_DIR)
 
 helloworld-clean-common:
 	$(MAKE) -C $(HELLOWORLD_PATH) $(HELLOWORLD_CLEAN_COMMON_FLAGS) clean
+
+################################################################################
+# optee-sdp for SMAF support over optee
+################################################################################
+OPTEE_SMAF_COMMON_FLAGS ?= CROSS_COMPILE_HOST=$(CROSS_COMPILE_NS_USER)\
+	CROSS_COMPILE_TA=$(CROSS_COMPILE_S_USER) \
+	TA_DEV_KIT_DIR=$(OPTEE_OS_TA_DEV_KIT_DIR) \
+	CFG_DEV_PATH=$(ROOT) \
+	COMPILE_NS_USER=$(COMPILE_NS_USER) \
+	O=$(OPTEE_SMAF_PATH)/out
+
+optee-smaf-common: optee-os optee-client
+	# build TA
+	$(MAKE) -C $(OPTEE_SMAF_PATH)/ta $(OPTEE_SMAF_COMMON_FLAGS) CROSS_COMPILE=$(CROSS_COMPILE_S_USER)
+	@echo
+	$(MAKE) -C $(LIB_SMAF_PATH)/lib -f Makefile.eca \
+		CROSS_COMPILE=$(CROSS_COMPILE_NS_USER) \
+		O=$(LIB_SMAF_PATH)/out
+	@echo
+	$(MAKE) -C $(LIB_SMAF_PATH)/tests -f Makefile.eca \
+		CROSS_COMPILE=$(CROSS_COMPILE_NS_USER) \
+		O=$(LIB_SMAF_PATH)/out
+	@echo
+
+OPTEE_SMAF_CLEAN_COMMON_FLAGS ?= TA_DEV_KIT_DIR=$(OPTEE_OS_TA_DEV_KIT_DIR)
+
+optee-smaf-clean-common:
+	$(MAKE) -C $(OPTEE_SMAF_PATH) $(OPTEE_SMAF_CLEAN_COMMON_FLAGS) clean
