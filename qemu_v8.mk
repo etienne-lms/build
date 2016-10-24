@@ -158,6 +158,16 @@ helloworld: helloworld-common
 helloworld-clean: helloworld-clean-common
 
 ################################################################################
+# optee_smaf: SMAF support over optee
+################################################################################
+.PHONY: optee-smaf
+optee-smaf: CFG_SMAF_MEMORY_POOL_BASE=0x0EF00000
+optee-smaf: CFG_SMAF_MEMORY_POOL_SIZE=0x00100000
+optee-smaf: optee-smaf-common
+
+optee-smaf-clean: optee-smaf-clean-common
+
+################################################################################
 # strace
 ################################################################################
 strace:

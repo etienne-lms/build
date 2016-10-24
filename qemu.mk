@@ -130,6 +130,16 @@ helloworld: helloworld-common
 helloworld-clean: helloworld-clean-common
 
 ################################################################################
+# optee_smaf: SMAF support over optee
+################################################################################
+.PHONY: optee-smaf
+optee-smaf: CFG_SMAF_MEMORY_POOL_BASE=0x7C000000
+optee-smaf: CFG_SMAF_MEMORY_POOL_SIZE=0x01F00000
+optee-smaf: optee-smaf-common
+
+optee-smaf-clean: optee-smaf-clean-common
+
+################################################################################
 # Root FS
 ################################################################################
 filelist-tee: filelist-tee-common

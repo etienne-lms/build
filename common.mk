@@ -16,6 +16,8 @@ OPTEE_CLIENT_EXPORT		?= $(OPTEE_CLIENT_PATH)/out/export
 OPTEE_TEST_PATH			?= $(ROOT)/optee_test
 OPTEE_TEST_OUT_PATH 		?= $(ROOT)/optee_test/out
 HELLOWORLD_PATH			?= $(ROOT)/hello_world
+OPTEE_SMAF_PATH 		?= $(ROOT)/optee_smaf
+LIB_SMAF_PATH                   ?= $(ROOT)/libsmaf
 
 # default high verbosity. slow uarts shall specify lower if prefered
 CFG_TEE_CORE_LOG_LEVEL		?= 3
@@ -252,6 +254,38 @@ helloworld-clean-common:
 	$(MAKE) -C $(HELLOWORLD_PATH) $(HELLOWORLD_CLEAN_COMMON_FLAGS) clean
 
 ################################################################################
+# optee-sdp for SMAF support over optee
+################################################################################
+OPTEE_SMAF_COMMON_FLAGS ?= CROSS_COMPILE_HOST=$(CROSS_COMPILE_NS_USER)\
+	CROSS_COMPILE_TA=$(CROSS_COMPILE_S_USER) \
+	TA_DEV_KIT_DIR=$(OPTEE_OS_TA_DEV_KIT_DIR) \
+	OPTEE_CLIENT_EXPORT=$(OPTEE_CLIENT_EXPORT) \
+	COMPILE_NS_USER=$(COMPILE_NS_USER)
+
+optee-smaf-common: optee-os optee-client
+	$(MAKE) -C $(OPTEE_SMAF_PATH)/ta \
+		$(OPTEE_SMAF_COMMON_FLAGS) CROSS_COMPILE=$(CROSS_COMPILE_S_USER) \
+		O=$(OPTEE_SMAF_PATH)/out/smaf_ta
+	$(MAKE) -C $(OPTEE_SMAF_PATH)/sdp_test_ta \
+		$(OPTEE_SMAF_COMMON_FLAGS) CROSS_COMPILE=$(CROSS_COMPILE_S_USER) \
+		O=$(OPTEE_SMAF_PATH)/out/sdp_test_ta
+	$(MAKE) -C $(LIB_SMAF_PATH)/lib -f Makefile.eca \
+		$(OPTEE_SMAF_COMMON_FLAGS) CROSS_COMPILE=$(CROSS_COMPILE_NS_USER) \
+		O=$(LIB_SMAF_PATH)/out
+	$(MAKE) -C $(LIB_SMAF_PATH)/tests -f Makefile.eca \
+		$(OPTEE_SMAF_COMMON_FLAGS) CROSS_COMPILE=$(CROSS_COMPILE_NS_USER) \
+		O=$(LIB_SMAF_PATH)/out
+
+OPTEE_SMAF_CLEAN_COMMON_FLAGS ?= TA_DEV_KIT_DIR=$(OPTEE_OS_TA_DEV_KIT_DIR)
+
+optee-smaf-clean-common:
+	$(MAKE) -C $(OPTEE_SMAF_PATH)/ta $(OPTEE_SMAF_COMMON_FLAGS) O=$(OPTEE_SMAF_PATH)/out/smaf_ta clean
+	$(MAKE) -C $(OPTEE_SMAF_PATH)/sdp_test_ta $(OPTEE_SMAF_COMMON_FLAGS) O=$(OPTEE_SMAF_PATH)/out/sdp_test_ta clean
+	$(MAKE) -C $(LIB_SMAF_PATH)/lib -f Makefile.eca $(OPTEE_SMAF_COMMON_FLAGS) O=$(LIB_SMAF_PATH)/out clean
+	$(MAKE) -C $(LIB_SMAF_PATH)/tests -f Makefile.eca $(OPTEE_SMAF_COMMON_FLAGS) O=$(LIB_SMAF_PATH)/out clean
+
+
+################################################################################
 # rootfs
 ################################################################################
 update_rootfs-common: busybox filelist-tee
@@ -309,5 +343,18 @@ filelist-tee-common: optee-client xtest helloworld
 									>> $(fl); \
 		echo "slink /lib/libsqlfs.so.1 libsqlfs.so.1.0 755 0 0" >> $(fl); \
 		echo "slink /lib/libsqlfs.so libsqlfs.so.1 755 0 0" 	>> $(fl); \
+	fi
+	@if [ -e $(LIB_SMAF_PATH)/out/test_smaf ]; then \
+		echo "# OP-TEE/SMAF materials and tests" 		>> $(fl); \
+		echo "file /bin/test_smaf $(LIB_SMAF_PATH)/out/test_smaf 755 0 0" \
+									>> $(fl); \
+		echo "file /lib/libsmaf.so $(LIB_SMAF_PATH)/out/libsmaf.so 755 0 0" \
+									>> $(fl); \
+		find $(OPTEE_SMAF_PATH)/out/smaf_ta -name "*.ta" | \
+		 sed 's/\(.*\)\/\(.*\)/file \/lib\/optee_armtz\/\2 \1\/\2 444 0 0/g' \
+									>> $(fl); \
+		find $(OPTEE_SMAF_PATH)/out/sdp_test_ta -name "*.ta" | \
+		 sed 's/\(.*\)\/\(.*\)/file \/lib\/optee_armtz\/\2 \1\/\2 444 0 0/g' \
+									>> $(fl); \
 	fi
 	@echo "# filelist-tee-common /end"				>> $(fl)
