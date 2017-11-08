@@ -16,7 +16,7 @@ include common.mk
 BIOS_QEMU_PATH			?= $(ROOT)/bios_qemu_tz_arm
 QEMU_PATH			?= $(ROOT)/qemu
 BINARIES_PATH			?= $(ROOT)/out/bin
-
+ARM_TF_PATH			?= $(ROOT)/arm-trusted-firmware
 SOC_TERM_PATH			?= $(ROOT)/soc_term
 
 DEBUG = 1
@@ -65,6 +65,43 @@ qemu:
 
 qemu-clean:
 	$(MAKE) -C $(QEMU_PATH) distclean
+
+################################################################################
+# ARM Trusted Firmware
+################################################################################
+ARM_TF_EXPORTS ?= \
+	CFLAGS="-O0 -gdwarf-2" \
+	CROSS_COMPILE="$(CCACHE)$(AARCH32_CROSS_COMPILE)"
+
+ARM_TF_DEBUG ?= 0
+
+ARM_TF_FLAGS ?= \
+	ARM_ARCH_MAJOR=7 \
+	ARCH=aarch32 \
+	PLAT=qemu \
+	DEBUG=$(ARM_TF_DEBUG) \
+	LOG_LEVEL=60 \
+	ERROR_DEPRECATED=1 \
+	ARM_TSP_RAM_LOCATION=tdram \
+	BL32_RAM_LOCATION=tdram \
+	BL33=$(ROOT)/out/bios-qemu/bios.bin \
+	AARCH32_SP=optee \
+	BL32=$(OPTEE_OS_HEADER_V2_BIN) \
+	BL32_EXTRA1=$(OPTEE_OS_PAGER_V2_BIN) \
+	BL32_EXTRA2=$(OPTEE_OS_PAGEABLE_V2_BIN)
+
+# This is where ATF generates the firmware binaries
+ifeq ($(ARM_TF_DEBUG),0)
+ARM_TF_OUT = $(ARM_TF_PATH)/build/qemu/release
+else
+ARM_TF_OUT = $(ARM_TF_PATH)/build/qemu/debug
+endif
+
+arm-tf: optee-os linux
+	$(ARM_TF_EXPORTS) $(MAKE) -C $(ARM_TF_PATH) $(ARM_TF_FLAGS) all fip
+
+arm-tf-clean:
+	$(ARM_TF_EXPORTS) $(MAKE) -C $(ARM_TF_PATH) $(ARM_TF_FLAGS) clean
 
 ################################################################################
 # Busybox
