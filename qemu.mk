@@ -38,22 +38,31 @@ include toolchain.mk
 ################################################################################
 # QEMU
 ################################################################################
+
+ifeq ($(USE_ATF),y)
+BIOS_QEMU_FLAGS	+= NSEC_BIOS_QEMU=1
+endif
+
 define bios-qemu-common
 	+$(MAKE) -C $(BIOS_QEMU_PATH) \
 		CROSS_COMPILE=$(CROSS_COMPILE_NS_USER) \
 		O=$(ROOT)/out/bios-qemu \
+		$(BIOS_QEMU_FLAGS) \
 		PLATFORM_FLAVOR=virt
 endef
 
 bios-qemu: update_rootfs optee-os
 	mkdir -p $(BINARIES_PATH)
+ifneq ($(USE_ATF),y)
 	ln -sf $(OPTEE_OS_HEADER_V2_BIN) $(BINARIES_PATH)
 	ln -sf $(OPTEE_OS_PAGER_V2_BIN) $(BINARIES_PATH)
 	ln -sf $(OPTEE_OS_PAGEABLE_V2_BIN) $(BINARIES_PATH)
+endif
 	ln -sf $(LINUX_PATH)/arch/arm/boot/zImage $(BINARIES_PATH)
 	ln -sf $(GEN_ROOTFS_PATH)/filesystem.cpio.gz \
 		$(BINARIES_PATH)/rootfs.cpio.gz
 	$(call bios-qemu-common)
+	# this generates $(ROOT)/out/bios-qemu/bios.bin
 
 bios-qemu-clean:
 	$(call bios-qemu-common) clean
@@ -95,6 +104,11 @@ ifeq ($(ARM_TF_DEBUG),0)
 ARM_TF_OUT = $(ARM_TF_PATH)/build/qemu/release
 else
 ARM_TF_OUT = $(ARM_TF_PATH)/build/qemu/debug
+endif
+
+ifeq ($(USE_ATF),y)
+all: arm-tf
+clean: arm-tf-clean
 endif
 
 arm-tf: optee-os linux
@@ -194,26 +208,63 @@ update_rootfs: update_rootfs-common
 ################################################################################
 # Run targets
 ################################################################################
+
+# OP-TEE expects to know how many core will be booted
+ifdef CFG_TEE_CORE_NB_CORE
+QEMU_SMP := $(CFG_TEE_CORE_NB_CORE)
+else
+QEMU_SMP ?= 1
+CFG_TEE_CORE_NB_CORE := $(QEMU_SMP)
+export CFG_TEE_CORE_NB_CORE
+endif
+
 .PHONY: run
 # This target enforces updating root fs etc
 run: all
 	$(MAKE) run-only
 
 .PHONY: run-only
+
+ifeq ($(USE_ATF),y)
+run-only: get-binaries
+get-binaries:
+	ln -sf $(ARM_TF_OUT)/bl1.bin $(BINARIES_PATH)/bl1.bin
+	ln -sf $(ARM_TF_OUT)/bl2.bin $(BINARIES_PATH)/bl2.bin
+	ln -sf $(ROOT)/out/bios-qemu/bios.bin $(BINARIES_PATH)/bl33.bin
+	ln -sf $(OPTEE_OS_HEADER_V2_BIN) $(BINARIES_PATH)/bl32.bin
+	ln -sf $(OPTEE_OS_PAGER_V2_BIN) $(BINARIES_PATH)/bl32_extra1.bin
+	ln -sf $(OPTEE_OS_PAGEABLE_V2_BIN) $(BINARIES_PATH)/bl32_extra2.bin
+endif
+
 run-only:
 	$(call check-terminal)
 	$(call run-help)
 	$(call launch-terminal,54320,"Normal World")
 	$(call launch-terminal,54321,"Secure World")
 	$(call wait-for-ports,54320,54321)
+ifeq ($(USE_ATF),y)
+	(cd $(BINARIES_PATH) && \
+	$(QEMU_PATH)/arm-softmmu/qemu-system-arm \
+		-nographic \
+		-serial tcp:localhost:54320 -serial tcp:localhost:54321 \
+		-s -S -machine virt -machine secure=on -cpu cortex-a15 \
+		-smp $(QEMU_SMP) -d unimp -semihosting-config enable,target=native \
+		-m 1057 \
+		-initrd $(GEN_ROOTFS_PATH)/filesystem.cpio.gz \
+		-kernel $(LINUX_PATH)/arch/arm/boot/Image -no-acpi \
+		-append 'console=ttyAMA0,38400 keep_bootcon root=/dev/vda2' \
+		-bios $(ARM_TF_PATH)/build/qemu/release/bl1.bin \
+		$(QEMU_EXTRA_ARGS) )
+else
 	(cd $(BINARIES_PATH) && $(QEMU_PATH)/arm-softmmu/qemu-system-arm \
 		-nographic \
 		-serial tcp:localhost:54320 -serial tcp:localhost:54321 \
 		-s -S -machine virt -machine secure=on -cpu cortex-a15 \
-		-d unimp  -semihosting-config enable,target=native \
+		-smp $(QEMU_SMP) -d unimp -semihosting-config enable,target=native \
 		-m 1057 \
 		-bios $(ROOT)/out/bios-qemu/bios.bin \
 		$(QEMU_EXTRA_ARGS) )
+endif
 
 
 ifneq ($(filter check,$(MAKECMDGOALS)),)
@@ -225,7 +276,6 @@ ifneq ($(TIMEOUT),)
 check-args += --timeout $(TIMEOUT)
 endif
 
-QEMU_SMP ?= 1
 check: $(CHECK_DEPS)
 	cd $(BINARIES_PATH) && \
 		export QEMU=$(ROOT)/qemu/arm-softmmu/qemu-system-arm && \
