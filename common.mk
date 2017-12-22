@@ -324,6 +324,28 @@ optee-client-clean-common:
 		clean
 
 ################################################################################
+# Hacky build of SKS TA from optee_os
+################################################################################
+
+SKS_TA_PATH		?= $(OPTEE_OS_PATH)/ta_services/secure_key_services
+SKS_TA_OUT_PATH	?= $(OPTEE_OS_PATH)/out/arm/ta_services/sks
+
+SKS_TA_COMMON_FLAGS ?= CROSS_COMPILE=$(CROSS_COMPILE_S_USER) \
+	TA_DEV_KIT_DIR=$(OPTEE_OS_TA_DEV_KIT_DIR) \
+	O=$(SKS_TA_OUT_PATH)
+
+.PHONY: sks-ta-common
+sks-ta-common: optee-os
+	$(MAKE) -C $(SKS_TA_PATH) $(SKS_TA_COMMON_FLAGS)
+
+.PHONY: filelist-tee-common
+filelist-tee-common: sks-ta-common
+
+.PHONY: sks-ta-clean-common
+sks-ta-clean-common:
+	$(MAKE) -C $(SKS_TA_PATH) clean $(SKS_TA_COMMON_FLAGS)
+
+################################################################################
 # xtest / optee_test
 ################################################################################
 XTEST_COMMON_FLAGS ?= CROSS_COMPILE_HOST=$(CROSS_COMPILE_NS_USER)\
@@ -467,6 +489,14 @@ filelist-tee-common: optee-client xtest optee-examples
 		echo "slink /lib/libsqlfs.so.1 libsqlfs.so.1.0 755 0 0" >> $(fl); \
 		echo "slink /lib/libsqlfs.so libsqlfs.so.1 755 0 0" 	>> $(fl); \
 	fi
+	@test -d $(OPTEE_CLIENT_EXPORT)/lib && for file in $(OPTEE_CLIENT_EXPORT)/lib/liboptee_cryptoki*.so*; do \
+		echo "file /lib/$$(basename $$file) $$file 755 0 0"	>> $(fl); \
+	done
+	@test -d $(SKS_TA_OUT_PATH) && \
+	 for file in $(SKS_TA_OUT_PATH)/*.ta; do \
+		echo "file /lib/optee_armtz/$$(basename $$file) $$file 755 0 0"	>> $(fl); \
+	done
+	@echo "# System inits"						>> $(fl)
 	@echo "file /etc/init.d/optee $(BUILD_PATH)/init.d.optee 755 0 0"	>> $(fl)
 	@echo "slink /etc/rc.d/S09_optee /etc/init.d/optee 755 0 0"	>> $(fl)
 	@echo "# filelist-tee-common /end"				>> $(fl)

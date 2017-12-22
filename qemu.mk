@@ -134,6 +134,13 @@ xtest-clean: xtest-clean-common
 xtest-patch: xtest-patch-common
 
 ################################################################################
+# OP-TEE TA: secure key services
+################################################################################
+sks-ta: sks-ta-common
+
+sks-ta-clean: sks-ta-clean-common
+
+################################################################################
 # Sample applications / optee_examples
 ################################################################################
 optee-examples: optee-examples-common
