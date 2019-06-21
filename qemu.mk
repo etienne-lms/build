@@ -21,6 +21,17 @@ SOC_TERM_PATH			?= $(ROOT)/soc_term
 
 DEBUG = 1
 
+# Hack: default enable SPCI and SCMI in OP-TEE
+CFG_WITH_SPCI ?= y
+export CFG_WITH_SPCI
+CFG_WITH_SCMI ?= y
+export CFG_WITH_SCMI
+
+# Hack: force CFG_TA_MBEDTLS_MPI=n, otherwise optee_test 3.3.0 fails to build: 
+# os_test TA expects mpa.h from TA devkit.
+CFG_TA_MBEDTLS_MPI ?= n
+export CFG_TA_MBEDTLS_MPI
+
 ################################################################################
 # Targets
 ################################################################################
@@ -169,6 +180,7 @@ QEMU_SMP ?= 1
 
 .PHONY: run-only
 run-only:
+	ln -sf $(ROOT)/out-br/images/rootfs.cpio.gz $(BINARIES_PATH)/
 	$(call check-terminal)
 	$(call run-help)
 	$(call launch-terminal,54320,"Normal World")
