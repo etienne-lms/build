@@ -10,6 +10,12 @@ override COMPILE_S_KERNEL  := 32
 
 BR2_ROOTFS_OVERLAY = $(ROOT)/build/br-ext/board/qemu/overlay
 
+# Hack: default enable SPCI and SCMI in OP-TEE
+CFG_WITH_SCMI ?= y
+export CFG_WITH_SCMI
+CFG_WITH_SPCI ?= y
+export CFG_WITH_SPCI
+
 include common.mk
 
 ################################################################################
