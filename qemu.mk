@@ -14,6 +14,21 @@ BR2_ROOTFS_POST_SCRIPT_ARGS = "$(QEMU_VIRTFS_AUTOMOUNT) $(QEMU_VIRTFS_MOUNTPOINT
 
 OPTEE_OS_PLATFORM = vexpress-qemu_virt
 
+#DEBUG = 1
+
+NDEBUG=1
+export NDEBUG
+
+CFG_CORE_TZSRAM_EMUL_SIZE=458752
+CFG_RPMB_FS=y
+CFG_RPMB_WRITE_KEY=y
+CFG_RPMB_TESTKEY=y
+export CFG_RPMB_FS
+export CFG_RPMB_WRITE_KEY
+export CFG_RPMB_TESTKEY
+
+CFG_ENABLE_EMBEDDED_TESTS=y
+export CFG_ENABLE_EMBEDDED_TESTS
 include common.mk
 
 ################################################################################
@@ -24,14 +39,16 @@ BINARIES_PATH			?= $(ROOT)/out/bin
 U-BOOT_PATH			?= $(ROOT)/u-boot
 QEMU_PATH			?= $(ROOT)/qemu
 SOC_TERM_PATH			?= $(ROOT)/soc_term
+EDK2_PATH               	?= $(ROOT)/edk2
+EDK2_PLATFORMS_PATH     	?= $(ROOT)/edk2-platforms
 
 DEBUG = 1
 
 ################################################################################
 # Targets
 ################################################################################
-all: arm-tf u-boot buildroot linux optee-os qemu soc-term
-clean: arm-tf-clean u-boot-clean buildroot-clean linux-clean optee-os-clean \
+all: arm-tf edk2 u-boot buildroot linux optee-os qemu soc-term
+clean: arm-tf-clean edk2-clean u-boot-clean buildroot-clean linux-clean optee-os-clean \
 	qemu-clean soc-term-clean check-clean
 
 include toolchain.mk
@@ -90,12 +107,59 @@ qemu-clean:
 	$(MAKE) -C $(QEMU_PATH) distclean
 
 ################################################################################
+# EDK2 (edk2 & edk2-platforms)
+################################################################################
+
+# OP-TEE OS needs StMM image to build
+optee-os: edk2
+
+EDK2_TOOLCHAIN ?= GCC5
+EDK2_ARCH ?= ARM
+ifeq ($(DEBUG),1)
+EDK2_BUILD ?= RELEASE# DEBUG
+else
+EDK2_BUILD ?= RELEASE
+endif
+EDK2_OUT ?= $(ROOT)/out-edk2
+EDK2_BIN ?= $(EDK2_OUT)/Build/MmStandaloneRpmb/$(EDK2_BUILD)_$(EDK2_TOOLCHAIN)/FV/BL32_AP_MM.fd
+
+define edk2-env
+	export WORKSPACE=$(EDK2_OUT)
+endef
+
+define edk2-call
+	echo "========================================================================" && \
+	echo "= PATH=$(PATH)" && \
+	echo "build -n(...) -a $(EDK2_ARCH)" && \
+        echo "  -t $(EDK2_TOOLCHAIN) -p Platform/StMMRpmb/PlatformStandaloneMm.dsc" && \
+        echo "  -b $(EDK2_BUILD) -D DO_X86EMU=TRUE" && \
+	echo "========================================================================" && \
+        $(EDK2_TOOLCHAIN)_$(EDK2_ARCH)_PREFIX=$(AARCH32_CROSS_COMPILE) \
+        build -n `getconf _NPROCESSORS_ONLN` -a $(EDK2_ARCH) \
+                -t $(EDK2_TOOLCHAIN) -p Platform/StMMRpmb/PlatformStandaloneMm.dsc \
+                -b $(EDK2_BUILD) -D DO_X86EMU=TRUE
+endef
+
+.PHONY: edk2-modules
+edk2-modules:
+	mkdir -p $(EDK2_OUT) && \
+	cd $(EDK2_PATH) && \
+	git submodule init && \
+	git submodule update --init --recursive
+
+edk2-common: edk2-modules
+edk2: edk2-common
+edk2-clean: edk2-clean-common
+
+# build ... -D UART_ENABLE=YES to enable StMM UART (if patches applied)
+
+################################################################################
 # U-boot
 ################################################################################
 U-BOOT_EXPORTS ?= CROSS_COMPILE="$(CCACHE)$(AARCH32_CROSS_COMPILE)"
 
 U-BOOT_DEFCONFIG_FILES := \
-	$(U-BOOT_PATH)/configs/qemu_arm_defconfig \
+	$(U-BOOT_PATH)/configs/qemu_tfa_mm32_defconfig \
 	$(ROOT)/build/kconfigs/u-boot_qemu_virt_v7.conf
 
 .PHONY: u-boot
@@ -141,6 +205,16 @@ linux-cleaner: linux-cleaner-common
 ################################################################################
 # OP-TEE
 ################################################################################
+
+CFG_RPMB_FS=y
+CFG_RPMB_FS_DEV_ID=1
+CFG_RPMB_WRITE_KEY=y
+CFG_STMM_PATH=$(EDK2_BIN)
+export CFG_RPMB_FS
+export CFG_RPMB_FS_DEV_ID
+export CFG_RPMB_WRITE_KEY
+export CFG_STMM_PATH
+
 optee-os: optee-os-common
 optee-os-clean: optee-os-clean-common
 
