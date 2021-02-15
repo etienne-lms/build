@@ -111,7 +111,8 @@ qemu-clean:
 ################################################################################
 
 # OP-TEE OS needs StMM image to build
-optee-os: edk2
+.PHONY: edk2
+optee-os-common: edk2
 
 EDK2_TOOLCHAIN ?= GCC5
 EDK2_ARCH ?= ARM
