@@ -9,20 +9,22 @@ EXAMPLE = $(wildcard examples/*)
 HOST_TARGET := aarch64-unknown-linux-gnu
 TA_TARGET := aarch64-unknown-optee-trustzone
 
-export RUST_TARGET_PATH = $(@D)
-export RUST_COMPILER_RT_ROOT = $(RUST_TARGET_PATH)/rust/rust/src/llvm-project/compiler-rt
-export OPTEE_DIR = $(@D)/../../..
-export OPTEE_OS_DIR = $(OPTEE_DIR)/optee_os
-export OPTEE_CLIENT_DIR = $(OPTEE_DIR)/out-br/build/optee_client_ext-1.0
-export OPTEE_CLIENT_INCLUDE = $(OPTEE_CLIENT_DIR)/out/export/usr/include
-export PATH := $(PATH):$(OPTEE_DIR)/toolchains/aarch64/bin
-export VENDOR = qemu_v8.mk
-export OPTEE_OS_INCLUDE = $(OPTEE_DIR)/optee_os/out/arm/export-ta_arm64/include
+define OPTEE_RUST_BUILD_ENV
+RUST_TARGET_PATH=$(@D) \
+RUST_COMPILER_RT_ROOT=$(RUST_TARGET_PATH)/rust/rust/src/llvm-project/compiler-rt \
+OPTEE_DIR=$(@D)/../../.. \
+OPTEE_OS_DIR=$(OPTEE_DIR)/optee_os \
+OPTEE_CLIENT_DIR=$(OPTEE_DIR)/out-br/build/optee_client_ext-1.0 \
+OPTEE_CLIENT_INCLUDE=$(OPTEE_CLIENT_DIR)/out/export/usr/include \
+PATH=$(PATH):$(OPTEE_DIR)/toolchains/aarch64/bin \
+VENDOR=qemu_v8.mk \
+OPTEE_OS_INCLUDE=$(OPTEE_DIR)/optee_os/out/arm/export-ta_arm64/include
+endef
 
 define OPTEE_RUST_EXAMPLES_EXT_BUILD_CMDS
 	@$(foreach f,$(wildcard $(@D)/examples/*/Makefile), \
-		echo Building $f && \
-		$(MAKE) -C $(dir $f) &&) true
+		echo Building $f &&
+		$(OPTEE_RUST_BUILD_ENV) $(MAKE) -C $(dir $f) &&) true
 endef
 
 define OPTEE_RUST_EXAMPLES_EXT_INSTALL_TARGET_CMDS
