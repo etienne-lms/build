@@ -120,8 +120,12 @@ tfa-clean:
 ################################################################################
 U_BOOT_EXPORTS ?= CROSS_COMPILE="$(CCACHE)$(AARCH32_CROSS_COMPILE)"
 
+U_BOOT_DEFCONFIG_FILES :=
+	$(U_BOOT_PATH)/configs/stm32mp15_defconfig \
+	$(ROOT)/build/kconfigs/u-boot_$(STM32MP1_DTS_BASENAME).conf
+
 u-boot:
-	$(U_BOOT_EXPORTS) $(MAKE) -C $(U_BOOT_PATH) stm32mp15_defconfig
+	cd $(U_BOOT_PATH) && scripts/kconfig/merge_config.sh $(U_BOOT_DEFCONFIG_FILES)
 	$(U_BOOT_EXPORTS) $(MAKE) -C $(U_BOOT_PATH) DEVICE_TREE=$(STM32MP1_DTS_BASENAME) all
 	@$(call install_in_binaries,$(U_BOOT_PATH)/$(U_BOOT_BIN))
 	@$(call install_in_binaries,$(U_BOOT_PATH)/$(U_BOOT_DTB))
