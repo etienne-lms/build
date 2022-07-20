@@ -36,6 +36,19 @@ done
 
 mkfs.ext2 -L bootfs -d ${BOOTFS_DIR} ${BINARIES_DIR}/bootfs.ext2 32M || exit 1
 
+# Part3 is an EFI system partition (ESP)
+# Needed for SystemReady certification (to store persistant EFI variables)
+# Use VFAT because u-boot fails to write "ubootefi.var" in ext: not an "Abosulte path".
+
+rm -f ${BINARIES_DIR}/esp.img || exit 1
+dd if=/dev/zero of=${BINARIES_DIR}/esp.img bs=1024 count=4096
+mkfs -t vfat -n ESP ${BINARIES_DIR}/esp.img
+
+#EPS_DIR=${BASE_DIR}/target-esp
+#rm -rf ${EPS_DIR} && mkdir ${EPS_DIR} || exit 1
+#mkfs.ext2 -L ESP -d ${EPS_DIR} ${BINARIES_DIR}/esp.img 4M || exit 1
+
+
 # Generate image from generated partition images and genimage config file
 
 rm -rf "${GENIMAGE_TMP}"

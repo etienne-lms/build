@@ -29,8 +29,8 @@ repository root path).
 
 Copy the bootable "sdcard.img" onto an microSD card with "dd":
 
-  $ sudo dd if=../out-br/images/sdcard.img of=/dev/sdX \
-	    conv=fdatasync status=progress
+  $ dd if=../out-br/images/sdcard.img of=/dev/sdX \
+       conv=fdatasync status=progress
 
 Boot the board
 ==============
