@@ -120,7 +120,7 @@ tfa-clean:
 ################################################################################
 U_BOOT_EXPORTS ?= CROSS_COMPILE="$(CCACHE)$(AARCH32_CROSS_COMPILE)"
 
-U_BOOT_DEFCONFIG_FILES :=
+U_BOOT_DEFCONFIG_FILES := \
 	$(U_BOOT_PATH)/configs/stm32mp15_defconfig \
 	$(ROOT)/build/kconfigs/u-boot_$(STM32MP1_DTS_BASENAME).conf
 
