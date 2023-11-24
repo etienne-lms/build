@@ -18,6 +18,7 @@ BREXT_FLAVOR		= STM32MP157A-DK1
 STM32MP1_DTS_BASENAME	= stm32mp157a-dk1
 STM32MP1_DTS_LINUX 	?= $(STM32MP1_DTS_BASENAME)-scmi
 STM32MP1_DTS_U_BOOT 	?= $(STM32MP1_DTS_BASENAME)-scmi
+WITH_SRAM1_PAGER_POOL	?= y
 else ifeq ($(PLATFORM),stm32mp1-157A_DHCOR_AVENGER96)
 BREXT_FLAVOR		= STM32MP157A-DHCOR-AVENGER96
 STM32MP1_DTS_BASENAME	= stm32mp157a-dhcor-avenger96
@@ -31,17 +32,20 @@ BREXT_FLAVOR		= STM32MP157C-DK2
 STM32MP1_DTS_BASENAME	= stm32mp157c-dk2
 STM32MP1_DTS_LINUX 	?= $(STM32MP1_DTS_BASENAME)-scmi
 STM32MP1_DTS_U_BOOT 	?= $(STM32MP1_DTS_BASENAME)-scmi
+WITH_SRAM1_PAGER_POOL	?= y
 else ifeq ($(PLATFORM),stm32mp1-157C_EV1)
 BREXT_FLAVOR		= STM32MP157C-EV1
 STM32MP1_DTS_BASENAME	= stm32mp157c-ev1
 STM32MP1_DTS_LINUX 	?= $(STM32MP1_DTS_BASENAME)-scmi
 STM32MP1_DTS_U_BOOT 	?= $(STM32MP1_DTS_BASENAME)-scmi
+WITH_SRAM1_PAGER_POOL	?= y
 CFG_RPMB_FS_DEV_ID	= 1
 else ifeq ($(PLATFORM),stm32mp1-157C_ED1)
 BREXT_FLAVOR		= STM32MP157C-ED1
 STM32MP1_DTS_BASENAME	= stm32mp157c-ed1
 STM32MP1_DTS_LINUX 	?= $(STM32MP1_DTS_BASENAME)-scmi
 STM32MP1_DTS_U_BOOT 	?= $(STM32MP1_DTS_BASENAME)-scmi
+WITH_SRAM1_PAGER_POOL	?= y
 else ifeq ($(PLATFORM),stm32mp1-135F_DK)
 BREXT_FLAVOR		= STM32MP135F-DK
 STM32MP1_DTS_BASENAME	= stm32mp135f-dk
@@ -58,6 +62,11 @@ STM32MP1_DEFCONFIG_U_BOOT ?= stm32mp15_defconfig
 # using OP-TEE RPMB test key (CFG_RPMB_TESTKEY=y). This configuration switch
 # is intended to platforms with an eMMC device.
 WITH_RPMB_TEST ?= n
+
+# When enabled WITH_SRAM1_PAGER_POOL makes OP-TEE pager core to use secure
+# SYSRAM and SRAM1. This switch concerns STM32MP15 based platforms only.
+# When enabled, CFG_TEE_CORE_DEBUG is also default enabled.
+WITH_SRAM1_PAGER_POOL ?= n
 
 ################################################################################
 # Binary images names
@@ -112,6 +121,13 @@ $(info "WARNING: building with RPMB support for test purpose")
 $(info "         CFG_RPMB_FS_DEV_ID=$(CFG_RPMB_FS_DEV_ID) CFG_RPMB_FS=y, CFG_RPMB_TESTKEY=y and CFG_REE_FS_ALLOW_RESET=y")
 $(info -------------------------------------------------------------------------------------)
 endif # WITH_RPMB_TEST
+
+ifeq ($(WITH_SRAM1_PAGER_POOL),y)
+CFG_TEE_CORE_DEBUG ?= y
+OPTEE_OS_COMMON_FLAGS += \
+		CFG_TZSRAM_SIZE=0x60000 \
+		CFG_TEE_CORE_DEBUG=$(CFG_TEE_CORE_DEBUG)
+endif # WITH_SRAM1_PAGER_POOL
 
 # Provide scp-firmware source tree path in case CFG_SCMI_SERVER is enabled
 OPTEE_OS_COMMON_FLAGS += CFG_SCP_FIRMWARE=$(SCPFW_PATH)
