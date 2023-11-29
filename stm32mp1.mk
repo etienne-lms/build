@@ -116,10 +116,12 @@ OPTEE_OS_COMMON_FLAGS += \
 		CFG_RPMB_FS=y \
 		CFG_RPMB_TESTKEY=y \
 		CFG_REE_FS_ALLOW_RESET=y
-$(info -------------------------------------------------------------------------------------)
-$(info "WARNING: building with RPMB support for test purpose")
-$(info "         CFG_RPMB_FS_DEV_ID=$(CFG_RPMB_FS_DEV_ID) CFG_RPMB_FS=y, CFG_RPMB_TESTKEY=y and CFG_REE_FS_ALLOW_RESET=y")
-$(info -------------------------------------------------------------------------------------)
+$(info -------------------------------------------------------------------)
+$(info WARNING)
+$(info Building with RPMB support for test purpose. This enables OP-TEE)
+$(info unsafe RPMB test key CFG_RPMB_TESTKEY=y and request the RPMB device)
+$(info to be programmed accordingly.)
+$(info -------------------------------------------------------------------)
 endif # WITH_RPMB_TEST
 
 ifeq ($(WITH_SRAM1_PAGER_POOL),y)

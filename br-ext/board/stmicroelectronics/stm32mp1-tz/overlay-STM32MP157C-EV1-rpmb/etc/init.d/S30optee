@@ -1,4 +1,10 @@
 #!/bin/sh
+#
+# Non-root user can access communicate with OP-TEE provided they
+# belong to the teeclnt group.
+#
+# tee-supplicant is run as root user ID to access /dev/teepriv0
+# and eMMC resources including its RPMB partition.
 
 DAEMON="tee-supplicant"
 DAEMON_PATH="/usr/sbin"
@@ -6,21 +12,8 @@ DAEMON_ARGS="-d /dev/teepriv0"
 PIDFILE="/var/run/$DAEMON.pid"
 
 start() {
-	# tee-supplicant and the client applications need not run as
-	# root provided that the TEE devices and the data store have
-	# proper permissions
-	printf 'Set permissions on %s: ' "/dev/tee*"
-	chown root:tee /dev/teepriv0 && chmod 0660 /dev/teepriv0 && \
-		chown root:teeclnt /dev/tee0 && chmod 0660 /dev/tee0
-	status=$?
-	if [ "$status" -eq 0 ]; then
-		echo "OK"
-	else
-		echo "FAIL"
-		return "$status"
-	fi
-	printf 'Create/set permissions on %s: ' "/data/tee"
-	mkdir -p /data/tee && chown -R tee:tee /data/tee && chmod 0770 /data/tee
+	echo 'Set group onwership to teeclnton /dev/tee '
+	chown root:teeclnt /dev/tee0 && chmod 6660 /dev/tee0
 	status=$?
 	if [ "$status" -eq 0 ]; then
 		echo "OK"
