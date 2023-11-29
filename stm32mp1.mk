@@ -65,7 +65,6 @@ WITH_RPMB_TEST ?= n
 
 # When enabled WITH_SRAM1_PAGER_POOL makes OP-TEE pager core to use secure
 # SYSRAM and SRAM1. This switch concerns STM32MP15 based platforms only.
-# When enabled, CFG_TEE_CORE_DEBUG is also default enabled.
 WITH_SRAM1_PAGER_POOL ?= n
 
 ################################################################################
@@ -125,10 +124,7 @@ $(info -------------------------------------------------------------------)
 endif # WITH_RPMB_TEST
 
 ifeq ($(WITH_SRAM1_PAGER_POOL),y)
-CFG_TEE_CORE_DEBUG ?= y
-OPTEE_OS_COMMON_FLAGS += \
-		CFG_TZSRAM_SIZE=0x60000 \
-		CFG_TEE_CORE_DEBUG=$(CFG_TEE_CORE_DEBUG)
+OPTEE_OS_COMMON_FLAGS += CFG_TZSRAM_SIZE=0x60000
 endif # WITH_SRAM1_PAGER_POOL
 
 # Provide scp-firmware source tree path in case CFG_SCMI_SERVER is enabled
