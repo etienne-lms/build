@@ -12,8 +12,8 @@ DAEMON_ARGS="-d /dev/teepriv0"
 PIDFILE="/var/run/$DAEMON.pid"
 
 start() {
-	echo 'Set group onwership to teeclnton /dev/tee '
-	chown root:teeclnt /dev/tee0 && chmod 6660 /dev/tee0
+	echo 'Set /dev/tee permissions: root:teeclnt 0660'
+	chown root:teeclnt /dev/tee0 && chmod 0660 /dev/tee0
 	status=$?
 	if [ "$status" -eq 0 ]; then
 		echo "OK"
