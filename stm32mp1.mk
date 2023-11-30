@@ -58,9 +58,11 @@ STM32MP1_DTS_LINUX ?= $(STM32MP1_DTS_BASENAME)
 STM32MP1_DTS_U_BOOT ?= $(STM32MP1_DTS_BASENAME)
 STM32MP1_DEFCONFIG_U_BOOT ?= stm32mp15_defconfig
 
-# When enabled WITH_RPMB_TEST enables RPMB secure storage test configuration,
-# using OP-TEE RPMB test key (CFG_RPMB_TESTKEY=y). This configuration switch
-# is intended to platforms with an eMMC device.
+# When enabled WITH_RPMB_TEST enables RPMB secure storage test configuration.
+# The configuraiton enables OP-TEE RPMB test key (CFG_RPMB_TESTKEY=y)
+# and CFG_REE_FS_ALLOW_RESET to allow testing with an empty REE_FS secure
+# storage content wihtout needing to reset the full RPMB_FS secure storage.
+# This configuration switch is intended to platforms with an eMMC device.
 WITH_RPMB_TEST ?= n
 
 # When enabled WITH_SRAM1_PAGER_POOL makes OP-TEE pager core to use secure
@@ -115,12 +117,6 @@ OPTEE_OS_COMMON_FLAGS += \
 		CFG_RPMB_FS=y \
 		CFG_RPMB_TESTKEY=y \
 		CFG_REE_FS_ALLOW_RESET=y
-$(info -------------------------------------------------------------------)
-$(info WARNING)
-$(info Building with RPMB support for test purpose. This enables OP-TEE)
-$(info unsafe RPMB test key CFG_RPMB_TESTKEY=y and request the RPMB device)
-$(info to be programmed accordingly.)
-$(info -------------------------------------------------------------------)
 endif # WITH_RPMB_TEST
 
 ifeq ($(WITH_SRAM1_PAGER_POOL),y)
